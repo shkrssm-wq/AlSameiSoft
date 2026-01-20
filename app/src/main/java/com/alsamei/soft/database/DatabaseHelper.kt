@@ -4,6 +4,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.alsamei.soft.models.Account
+import com.alsamei.soft.models.JournalLine
+import com.alsamei.soft.models.JournalEntry
+import com.alsamei.soft.models.Partner
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
     companion object {
@@ -102,7 +106,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null
         // handle migrations
     }
 
-    // Example method: addJournalEntry (transactional)
+    // Journal methods
     fun addJournalEntry(refNo: String, date: String, description: String, lines: List<JournalLine>) {
         val db = writableDatabase
         db.beginTransaction()
@@ -134,13 +138,116 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null
             db.endTransaction()
         }
     }
-}
 
-data class JournalLine(
-    val accountId: Long,
-    val partnerId: Long? = null,
-    val debit: Double = 0.0,
-    val credit: Double = 0.0,
-    val currencyId: Long? = null,
-    val rate: Double = 1.0
-)
+    // Accounts CRUD
+    fun insertAccount(account: Account): Long {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("code", account.code)
+            put("name", account.name)
+            put("type", account.type)
+            put("parent_id", account.parentId)
+            put("opening_balance", account.openingBalance)
+            put("currency_id", account.currencyId)
+        }
+        return db.insert("accounts", null, cv)
+    }
+
+    fun getAllAccounts(): List<Account> {
+        val db = readableDatabase
+        val cursor = db.query("accounts", null, null, null, null, null, "id DESC")
+        val list = mutableListOf<Account>()
+        cursor.use {
+            while (it.moveToNext()) {
+                val acc = Account(
+                    id = it.getLong(it.getColumnIndexOrThrow("id")),
+                    code = it.getString(it.getColumnIndexOrThrow("code")),
+                    name = it.getString(it.getColumnIndexOrThrow("name")),
+                    type = it.getString(it.getColumnIndexOrThrow("type")),
+                    parentId = if (!it.isNull(it.getColumnIndexOrThrow("parent_id"))) it.getLong(it.getColumnIndexOrThrow("parent_id")) else null,
+                    openingBalance = it.getDouble(it.getColumnIndexOrThrow("opening_balance")),
+                    currencyId = it.getLong(it.getColumnIndexOrThrow("currency_id"))
+                )
+                list.add(acc)
+            }
+        }
+        return list
+    }
+
+    fun updateAccount(account: Account): Int {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("code", account.code)
+            put("name", account.name)
+            put("type", account.type)
+            put("parent_id", account.parentId)
+            put("opening_balance", account.openingBalance)
+            put("currency_id", account.currencyId)
+        }
+        return db.update("accounts", cv, "id = ?", arrayOf(account.id.toString()))
+    }
+
+    fun deleteAccount(id: Long): Int {
+        val db = writableDatabase
+        return db.delete("accounts", "id = ?", arrayOf(id.toString()))
+    }
+
+    // Partners CRUD
+    fun insertPartner(partner: Partner): Long {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("name", partner.name)
+            put("type", partner.type)
+            put("phone", partner.phone)
+            put("email", partner.email)
+            put("address", partner.address)
+            put("account_id", partner.accountId)
+        }
+        return db.insert("partners", null, cv)
+    }
+
+    fun getAllPartners(): List<Partner> {
+        val db = readableDatabase
+        val cursor = db.query("partners", null, null, null, null, null, "id DESC")
+        val list = mutableListOf<Partner>()
+        cursor.use {
+            while (it.moveToNext()) {
+                val p = Partner(
+                    id = it.getLong(it.getColumnIndexOrThrow("id")),
+                    name = it.getString(it.getColumnIndexOrThrow("name")),
+                    type = it.getString(it.getColumnIndexOrThrow("type")),
+                    phone = it.getStringOrNull(it, "phone"),
+                    email = it.getStringOrNull(it, "email"),
+                    address = it.getStringOrNull(it, "address"),
+                    accountId = if (!it.isNull(it.getColumnIndexOrThrow("account_id"))) it.getLong(it.getColumnIndexOrThrow("account_id")) else null
+                )
+                list.add(p)
+            }
+        }
+        return list
+    }
+
+    fun updatePartner(partner: Partner): Int {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("name", partner.name)
+            put("type", partner.type)
+            put("phone", partner.phone)
+            put("email", partner.email)
+            put("address", partner.address)
+            put("account_id", partner.accountId)
+        }
+        return db.update("partners", cv, "id = ?", arrayOf(partner.id.toString()))
+    }
+
+    fun deletePartner(id: Long): Int {
+        val db = writableDatabase
+        return db.delete("partners", "id = ?", arrayOf(id.toString()))
+    }
+
+    // helper extension for nullable strings
+    private fun android.database.Cursor.getStringOrNull(cursor: android.database.Cursor, column: String): String? {
+        val idx = cursor.getColumnIndexOrThrow(column)
+        return if (cursor.isNull(idx)) null else cursor.getString(idx)
+    }
+}
