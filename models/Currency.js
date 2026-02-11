@@ -1,0 +1,2 @@
+// Currency Model
+class Currency { ... }

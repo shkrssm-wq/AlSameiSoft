@@ -1,0 +1,2 @@
+// Cashbox Model
+class Cashbox { ... }

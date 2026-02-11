@@ -1,0 +1,2 @@
+// JournalLine Model
+class JournalLine { ... }

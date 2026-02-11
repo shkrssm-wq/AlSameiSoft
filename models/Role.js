@@ -1,0 +1,2 @@
+// Role Model
+class Role { ... }

@@ -1,0 +1,2 @@
+// InvoiceLine Model
+class InvoiceLine { ... }
